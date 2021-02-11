@@ -4,7 +4,7 @@
 
     <groupId>au.gov.nehta</groupId>
     <artifactId>common-library</artifactId>
-    <version>1.2.1-SNAPSHOT</version>
+    <version>1.2.1</version>
     <name>ADHA/NEHTA Common Library</name>
     <description>Java classes for common code used by other ADHA/NEHTA libraries</description>
     <url>https://github.com/AuDigitalHealth/common-library-java</url>
