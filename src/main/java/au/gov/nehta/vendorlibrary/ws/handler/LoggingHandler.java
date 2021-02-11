@@ -3,7 +3,7 @@
  *
  * Licensed under the NEHTA Open Source (Apache) License; you may not use this
  * file except in compliance with the License. A copy of the License is in the
- * 'license.txt' file, which should be provided with this work.
+ * 'LICENSE.txt' file, which should be provided with this work.
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -13,14 +13,16 @@
  */
 package au.gov.nehta.vendorlibrary.ws.handler;
 
-
-import au.gov.nehta.vendorlibrary.xml.XmlUtil;
+import com.sun.xml.ws.api.handler.MessageHandler;
+import com.sun.xml.ws.api.handler.MessageHandlerContext;
+import com.sun.xml.ws.api.message.Message;
+import com.sun.xml.ws.api.streaming.XMLStreamWriterFactory;
 
 import javax.xml.namespace.QName;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 import javax.xml.ws.handler.MessageContext;
-import javax.xml.ws.handler.soap.SOAPHandler;
-import javax.xml.ws.handler.soap.SOAPMessageContext;
-import java.util.Collections;
+import java.io.ByteArrayOutputStream;
 import java.util.Set;
 import java.util.logging.Logger;
 
@@ -30,7 +32,7 @@ import java.util.logging.Logger;
  * call the SOAP handler before a SOAP message is sent (request) and after a
  * SOAP message has been received (response).<br>
  */
-public final class LoggingHandler implements SOAPHandler<SOAPMessageContext> {
+public final class LoggingHandler implements MessageHandler<MessageHandlerContext> {
 
     /**
      * Constant for empty string.
@@ -43,11 +45,10 @@ public final class LoggingHandler implements SOAPHandler<SOAPMessageContext> {
     public static final String ENCODING = "utf-8";
 
     /**
-     * Logger instance for Logging messages to log outputstream
+     * Logger instance for Logging messages to log output stream
      */
     private static final Logger LOG = Logger.getLogger(LoggingHandler.class
             .getName());
-
 
     /**
      * The SOAP request message corresponding to the most recent web service invocation
@@ -96,8 +97,8 @@ public final class LoggingHandler implements SOAPHandler<SOAPMessageContext> {
      * FALSE
      * @see javax.xml.ws.handler.Handler#handleMessage(javax.xml.ws.handler.MessageContext)
      */
-    public boolean handleMessage(final SOAPMessageContext context) {
-        // log to SOAP message to console
+    public boolean handleMessage(final MessageHandlerContext context) {
+        // log SOAP message to console
         logSOAPMessage(context);
         return true; // Continue processing
     }
@@ -111,8 +112,8 @@ public final class LoggingHandler implements SOAPHandler<SOAPMessageContext> {
      * {@link Boolean}.FALSE
      * @see javax.xml.ws.handler.Handler#handleFault(javax.xml.ws.handler.MessageContext)
      */
-    public boolean handleFault(final SOAPMessageContext context) {
-        // log to SOAP message to console
+    public boolean handleFault(final MessageHandlerContext context) {
+        // log SOAP message to console
         logSOAPMessage(context);
         return true; // Continue processing
     }
@@ -122,20 +123,40 @@ public final class LoggingHandler implements SOAPHandler<SOAPMessageContext> {
      *
      * @param context the SOAP Message context
      */
-    private void logSOAPMessage(final SOAPMessageContext context) {
+    private void logSOAPMessage(final MessageHandlerContext context) {
         boolean outgoing = (Boolean) context
                 .get(MessageContext.MESSAGE_OUTBOUND_PROPERTY);
         if (outgoing) {
-            lastSoapRequest = XmlUtil.serialiseSoapXml(context.getMessage());
+            lastSoapRequest = getSoapAsString(context);
             if (dump) {
                 LOG.info("Outgoing" + lastSoapRequest);
             }
         } else {
-            lastSoapResponse = XmlUtil.serialiseSoapXml(context.getMessage());
+            lastSoapResponse = getSoapAsString(context);
             if (dump) {
                 LOG.info("Incoming" + lastSoapResponse);
             }
         }
+    }
+
+    private String getSoapAsString(MessageHandlerContext mhc) {
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        // IMPORTANT: always work from the copy!
+        Message m = mhc.getMessage().copy();
+
+        XMLStreamWriter writer = XMLStreamWriterFactory.create(baos);
+        String soap = "";
+        try {
+            m.writeTo(writer);
+            soap = baos.toString();
+
+        } catch (XMLStreamException e) {
+            LOG.severe("Error logging soap message: " + e.getMessage());
+        }
+
+        return soap;
     }
 
     /**
@@ -146,7 +167,7 @@ public final class LoggingHandler implements SOAPHandler<SOAPMessageContext> {
      * @see javax.xml.ws.handler.soap.SOAPHandler#getHeaders()
      */
     public Set<QName> getHeaders() {
-        return Collections.emptySet();
+        return null;
     }
 
     /**
